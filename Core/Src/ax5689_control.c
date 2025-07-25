@@ -430,7 +430,7 @@ void AX5689_Setup(void) {
     printf("AX5689 Enabled (Reset pin HIGH).\r\n");
 
     // 等待芯片稳定
-    HAL_Delay(10);
+    HAL_Delay(500);
 
     // 从您的头文件写入寄存器设置
     printf("Writing register settings...\r\n");

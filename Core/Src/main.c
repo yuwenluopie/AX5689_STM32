@@ -92,26 +92,9 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI2_Init();
   MX_USART1_UART_Init();
-  /* USER CODE BEGIN 2 */
-  
-  printf("\r\n--- AX5689 Amplifier Control Program ---\r\n");
 
-  // 步骤 1 & 2: 初始化IO (根据PDF P13)
   IO_Init();
 
-  // 步骤 3: 启动音频时钟源 和 I2C (已由MX_I2C2_Init完成)
-  printf("Audio source and I2C assumed to be ready.\r\n");
-  
-  // 检查设备是否就绪
-  i2c_status = HAL_I2C_IsDeviceReady(&hi2c2, AX5689_I2C_ADDR, 3, 100);
-  if(i2c_status != HAL_OK)
-  {
-      printf("   [NG] AX5689 not found at address 0x%02X. Halting.\r\n", AX5689_I2C_ADDR >> 1);
-      while(1); // 如果设备未找到，则停机
-  }
-  printf("   [OK] AX5689 found at address 0x%02X\r\n", AX5689_I2C_ADDR >> 1);
-
-  // 步骤 4: 设置AX5689 (加载寄存器配置)
   AX5689_Setup();
 
   // 启动控制循环
