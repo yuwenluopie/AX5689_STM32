@@ -1,9 +1,9 @@
-../Core/Src/ax5689_control.c:345:6:IO_Init	1
+../Core/Src/ax5689_control.c:346:6:IO_Init	1
 ../Core/Src/ax5689_control.c:366:19:AX5689_Read	3
 ../Core/Src/ax5689_control.c:392:19:AX5689_Write	1
 ../Core/Src/ax5689_control.c:410:6:AX5689_WriteRegisterSet	3
 ../Core/Src/ax5689_control.c:427:6:AX5689_Setup	1
-../Core/Src/ax5689_control.c:448:6:StartControlLoop	1
-../Core/Src/ax5689_control.c:480:6:StopControlLoop	1
-../Core/Src/ax5689_control.c:512:6:clearStatusRegisters	1
-../Core/Src/ax5689_control.c:524:6:checkStatusRegister	4
+../Core/Src/ax5689_control.c:444:6:StartControlLoop	1
+../Core/Src/ax5689_control.c:476:6:StopControlLoop	1
+../Core/Src/ax5689_control.c:508:6:clearStatusRegisters	1
+../Core/Src/ax5689_control.c:520:6:checkStatusRegister	4

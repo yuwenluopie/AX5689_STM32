@@ -487,27 +487,26 @@ uint16_t VolumeHex = 0x8FF6;
 void IO_Init(void) {
  8000400:	b580      	push	{r7, lr}
  8000402:	af00      	add	r7, sp, #0
-    // 根据PDF P13, IO_Init示例
-    // 将功放静音 (AX_Mute_N_Pin -> PC6)
-    HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_SET);
+    // 根据 IO_Init示例，初始化Mute引脚为低电平
+    HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_RESET);
  8000404:	4b0b      	ldr	r3, [pc, #44]	@ (8000434 <IO_Init+0x34>)
- 8000406:	2201      	movs	r2, #1
+ 8000406:	2200      	movs	r2, #0
  8000408:	2101      	movs	r1, #1
  800040a:	0018      	movs	r0, r3
  800040c:	f001 f922 	bl	8001654 <HAL_GPIO_WritePin>
 
     // 将电源级置于高阻态 (Hi-Z), 假设您有一个PS_RESET_N引脚, 这里用一个通用输出来示意
-    // HAL_GPIO_WritePin(PS_RESET_N_GPIO_Port, PS_RESET_N_Pin, GPIO_PIN_RESET);
+    //HAL_GPIO_WritePin(PS_RESET_N_GPIO_Port, PS_RESET_N_Pin, GPIO_PIN_RESET);
 
     HAL_Delay(20); // 等待信号稳定
  8000410:	2014      	movs	r0, #20
  8000412:	f000 fec5 	bl	80011a0 <HAL_Delay>
 
     // 禁用Axign控制器 (AX_Reset_N_Pin -> PA8)
-    HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_RESET);
  8000416:	23a0      	movs	r3, #160	@ 0xa0
  8000418:	05db      	lsls	r3, r3, #23
- 800041a:	2201      	movs	r2, #1
+ 800041a:	2200      	movs	r2, #0
  800041c:	2101      	movs	r1, #1
  800041e:	0018      	movs	r0, r3
  8000420:	f001 f918 	bl	8001654 <HAL_GPIO_WritePin>
@@ -826,10 +825,6 @@ void AX5689_Setup(void) {
 
 0800060c <StartControlLoop>:
 
-/**
- * @brief  启动Axign控制循环.
- * @note   严格遵循PDF P15的流程以避免pop噪音.
- */
 void StartControlLoop(void) {
  800060c:	b580      	push	{r7, lr}
  800060e:	af00      	add	r7, sp, #0
@@ -997,7 +992,7 @@ void StopControlLoop(void) {
 0800071c <clearStatusRegisters>:
 
 /**
- * @brief 清除状态寄存器以清除状态引脚.
+ * @brief 
  */
 void clearStatusRegisters(void) {
  800071c:	b580      	push	{r7, lr}
@@ -1179,7 +1174,7 @@ int main(void)
   IO_Init();
  800080c:	f7ff fdf8 	bl	8000400 <IO_Init>
 
-  // 步骤 3: 启动音频时钟源 (假设已由硬件完成) 和 I2C (已由MX_I2C2_Init完成)
+  // 步骤 3: 启动音频时钟源 和 I2C (已由MX_I2C2_Init完成)
   printf("Audio source and I2C assumed to be ready.\r\n");
  8000810:	4b15      	ldr	r3, [pc, #84]	@ (8000868 <main+0x80>)
  8000812:	0018      	movs	r0, r3
@@ -1390,7 +1385,7 @@ static void MX_I2C2_Init(void)
  8000930:	4b1b      	ldr	r3, [pc, #108]	@ (80009a0 <MX_I2C2_Init+0x74>)
  8000932:	4a1c      	ldr	r2, [pc, #112]	@ (80009a4 <MX_I2C2_Init+0x78>)
  8000934:	601a      	str	r2, [r3, #0]
-  hi2c2.Init.Timing = 10000;
+  hi2c2.Init.Timing = 0x00503D58;
  8000936:	4b1a      	ldr	r3, [pc, #104]	@ (80009a0 <MX_I2C2_Init+0x74>)
  8000938:	4a1b      	ldr	r2, [pc, #108]	@ (80009a8 <MX_I2C2_Init+0x7c>)
  800093a:	605a      	str	r2, [r3, #4]
@@ -1470,7 +1465,7 @@ static void MX_I2C2_Init(void)
  800099e:	bd80      	pop	{r7, pc}
  80009a0:	20000084 	.word	0x20000084
  80009a4:	40005800 	.word	0x40005800
- 80009a8:	00002710 	.word	0x00002710
+ 80009a8:	00503d58 	.word	0x00503d58
 
 080009ac <MX_SPI2_Init>:
   * @brief SPI2 Initialization Function

@@ -23,7 +23,7 @@
 // ADC input resistors: 10000 Ohm (0.1 %)
 // PVDD = 50
 // Date: 2025/01/09 15:04:04
-
+#include <stdint.h>
 extern const uint16_t amplifierCommands[];
 
 #define REG01_VALUE 0xFFFF
@@ -39,6 +39,6 @@ extern const uint16_t amplifierCommands[];
 
 extern float PVDD;
 extern uint32_t SAMPLE_RATE;
-extern float UVP ;
-extern float OVP ;
+extern float UVP;
+extern float OVP;
 extern uint16_t VolumeHex;
