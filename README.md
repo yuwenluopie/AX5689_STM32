@@ -190,7 +190,7 @@ uint16_t VolumeHex = 0x8FF6;         // 默认音量设置
 
 ## 联系信息
 
-- **作者**: Nicole YU @MPS Axign Center
+- **作者**: Nicole YU @MPS Axign Design Center. AE
 - **项目**: AX5689_STM32
 - **GitHub**: https://github.com/yuwenluopie/AX5689_STM32
 
