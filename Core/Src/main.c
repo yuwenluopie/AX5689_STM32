@@ -17,7 +17,7 @@ static void MX_USART1_UART_Init(void);
 #endif 
 int main(void)
 {
-   HAL_Init();
+  HAL_Init();
   SystemClock_Config();
   MX_GPIO_Init();
   MX_I2C2_Init();
@@ -28,6 +28,7 @@ int main(void)
   StartControlLoop();
   while (1)
   {
+    
     checkStatusRegister();
     HAL_Delay(100); // 轮询间隔    
   }
