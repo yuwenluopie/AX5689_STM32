@@ -12,9 +12,7 @@
 
 
 #define AX5689_I2C_ADDR (0x39 << 1)
-
-// 包含您的寄存器配置文件
-#include "AXN050-AX5689_register_settings_hybrid_HiRes_PWM_BD 1.h"
+#include "AXN050-AX5689_register_settings_hybrid_HiRes_PWM_BD.h"
 
 // 函数原型声明
 void IO_Init(void);
