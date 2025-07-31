@@ -83,6 +83,8 @@ void Error_Handler(void);
 #define MCU_Pstart_GPIO_Port GPIOA
 #define LED_ON_OFF_Pin GPIO_PIN_8
 #define LED_ON_OFF_GPIO_Port GPIOC
+#define Mode_Select_Pin GPIO_PIN_9
+#define Mode_Select_GPIO_Port GPIOC
 
 /* USER CODE BEGIN Private defines */
 

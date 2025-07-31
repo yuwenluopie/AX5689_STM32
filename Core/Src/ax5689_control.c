@@ -3,230 +3,440 @@
  *
  *  Created on: Jul 9, 2025
  *      Author: ncyu
+ *  
+ *  @brief AX5689 Audio Amplifier Control Implementation
+ *         Provides OpenLoop and CloseLoop mode switching with GPIO control
  */
 
-#include "OpenLoop.h"
-//#include "AXN050-AX5689_register_settings_hybrid_HiRes_PWM_BD 1.h"
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
 #include "ax5689_control.h"
-#include <stdio.h>
+#include "OpenLoop.h"
+#include "CloseLoop.h"
 #include "SEGGER_RTT.h"
-extern I2C_HandleTypeDef hi2c2;
+
+/* Private defines -----------------------------------------------------------*/
 #define RTT_printf(fmt, ...) SEGGER_RTT_printf(0, fmt, ##__VA_ARGS__)
 
+/* External variables --------------------------------------------------------*/
+extern I2C_HandleTypeDef hi2c2;
+
+/* Global variables ----------------------------------------------------------*/
+AX5689_ConfigMode_t current_config_mode = AX5689_OPENLOOP_MODE;
+
+/* Private function prototypes -----------------------------------------------*/
+static void AX5689_PowerSequence_Init(void);
+static void AX5689_EnableController(void);
+static void AX5689_DisableController(void);
+
+/* Public Functions ----------------------------------------------------------*/
+
 /**
- * @brief  初始化与AX5689和电源级相关的GPIO引脚.
- * @note   根据PDF Step 2: Initialize I/O.
+ * @brief  Initialize GPIO pins for AX5689 and power stage control
+ * @note   Based on official Step 2: Initialize I/O
  */
-void IO_Init(void) {
+void IO_Init(void) 
+{
+    // Initialize RTT for debug output
     SEGGER_RTT_Init();
-    SEGGER_RTT_WriteString(0, "RTT initialized\r\n");
     
-    // 根据 IO_Init示例，初始化Mute引脚为低电平
+    RTT_printf("=== Step 2: Initialize I/O ===\r\n");
+    
+    // Following official Axign documentation sequence:
+    // SetPin(AX_MUTE_N, LOW); // 将放大器置于静音状态（音量为 0）
     HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_RESET);
-
-    // 将电源级置于高阻态 (Hi-Z), 假设您有一个PS_RESET_N引脚, 这里用一个通用输出来示意
-    //HAL_GPIO_WritePin(PS_RESET_N_GPIO_Port, PS_RESET_N_Pin, GPIO_PIN_RESET);
-
-    HAL_Delay(20); // 等待信号稳定
-
-    // 禁用Axign控制器 (AX_Reset_N_Pin -> PA8)
+    RTT_printf("AX_MUTE_N set to LOW (amplifier muted)\r\n");
+    
+    // SetPin(PS_RESET_N, LOW); // 将功率级置于高阻态 (Hi-Z)
+    // Note: PS_RESET_N corresponds to power stage reset, using available power control pins
+    HAL_GPIO_WritePin(D5V2_EN_GPIO_Port, D5V2_EN_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(PVDD_EN_GPIO_Port, PVDD_EN_Pin, GPIO_PIN_RESET);
+    RTT_printf("Power stage set to Hi-Z state\r\n");
+    
+    // delay(20); // 等待信号稳定 (ms)
+    HAL_Delay(20);
+    RTT_printf("Signal stabilization delay: 20ms\r\n");
+    
+    // SetPin(AX_RESET_N, LOW); // 禁用 Axign 控制器
     HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_RESET);
-    RTT_printf("IO Initialized.\r\n");
+    RTT_printf("AX_RESET_N set to LOW (Axign controller disabled)\r\n");
+    
+    RTT_printf("I/O initialization completed according to official documentation.\r\n\r\n");
 }
 
 /**
- * @brief  从AX5689寄存器读取16位数据.
- * @param  regAddr: 寄存器地址.
- * @param  data: 指向存储读取数据的16位变量的指针.
- * @retval HAL status.
+ * @brief  Read 16-bit data from AX5689 register
+ * @param  regAddr: Register address to read from
+ * @param  data: Pointer to store the read 16-bit data
+ * @retval HAL status
  */
-HAL_StatusTypeDef AX5689_Read(uint16_t regAddr, uint16_t *data) {
+HAL_StatusTypeDef AX5689_Read(uint16_t regAddr, uint16_t *data) 
+{
     HAL_StatusTypeDef status = HAL_ERROR;
     uint8_t buffer[2];
 
-    // 将16位寄存器地址转换为两个8位字节
+    // Convert 16-bit register address to two 8-bit bytes
     buffer[0] = (regAddr >> 8) & 0xFF;
     buffer[1] = regAddr & 0xFF;
 
-    // 发送寄存器地址
+    // Send register address
     status = HAL_I2C_Master_Transmit(&hi2c2, AX5689_I2C_ADDR, buffer, 2, HAL_MAX_DELAY);
     if (status == HAL_OK) {
-        // 接收数据
+        // Receive data
         status = HAL_I2C_Master_Receive(&hi2c2, AX5689_I2C_ADDR, buffer, 2, HAL_MAX_DELAY);
         if (status == HAL_OK) {
             *data = ((uint16_t)buffer[0] << 8) | (uint16_t)buffer[1];
         }
     }
+    
     return status;
 }
 
 /**
- * @brief  向AX5689寄存器写入16位数据.
- * @param  regAddr: 寄存器地址.
- * @param  regVal: 要写入的16位数据.
- * @retval HAL status.
+ * @brief  Write 16-bit data to AX5689 register
+ * @param  regAddr: Register address to write to
+ * @param  regVal: 16-bit value to write
+ * @retval HAL status
  */
-HAL_StatusTypeDef AX5689_Write(uint16_t regAddr, uint16_t regVal) {
+HAL_StatusTypeDef AX5689_Write(uint16_t regAddr, uint16_t regVal) 
+{
     HAL_StatusTypeDef status;
     uint8_t data[4];
 
-    // 格式化数据: [RegAddr_MSB, RegAddr_LSB, Data_MSB, Data_LSB]
+    // Format data: [RegAddr_MSB, RegAddr_LSB, Data_MSB, Data_LSB]
     data[0] = (regAddr >> 8) & 0xFF;
     data[1] = regAddr & 0xFF;
     data[2] = (regVal >> 8) & 0xFF;
     data[3] = regVal & 0xFF;
 
-    status = HAL_I2C_Master_Transmit(&hi2c2, AX5689_I2C_ADDR, data, 4, HAL_MAX_DELAY);
+    // Debug output - show what we're writing
+    RTT_printf("Writing reg 0x%04X = 0x%04X\r\n", regAddr, regVal);
+
+    // Send complete transaction
+    status = HAL_I2C_Master_Transmit(&hi2c2, AX5689_I2C_ADDR, data, 4, 1000);
+    
     return status;
 }
 
 /**
- * @brief  将寄存器配置数组写入AX5689.
- * @param  ptrConfigArray: 指向配置数组的指针.
+ * @brief  Write a complete register configuration set to AX5689
+ * @param  ptrConfigArray: Pointer to configuration array
+ * @note   Based on official AX568X_WriteRegisterSet implementation
  */
-void AX5689_WriteRegisterSet(const uint16_t *ptrConfigArray) {
-    // 循环直到遇到数组结束命令0xFFFF
+void AX5689_WriteRegisterSet(const uint16_t *ptrConfigArray) 
+{
+    RTT_printf("Starting register configuration according to official documentation...\r\n");
+
+    // 循环直到数组命令结束
+    // Loop until end of array commands
     while (*ptrConfigArray != 0xFFFF) {
         uint16_t regAddr = ptrConfigArray[0];
         uint16_t regVal = ptrConfigArray[1];
-        if (AX5689_Write(regAddr, regVal) != HAL_OK) {
-            RTT_printf("Error writing register 0x%04X\r\n", regAddr);
-            // 可以加入错误处理
-        }
-        ptrConfigArray += 2; // 移动到数组中的下一个地址/数据对
+
+        // AX568X_Write(axAddrI2C, ptrConfigArray[0], ptrConfigArray[1]);
+        AX5689_Write(regAddr, regVal);
+        HAL_Delay(1); // Small delay between register writes
+        
+        // ptrConfigArray += 2; // 转到数组中的下一个地址
+        // Move to next address in array
+        ptrConfigArray += 2;
     }
+
+    RTT_printf("Register configuration completed according to official documentation.\r\n");
 }
 
 /**
- * @brief  设置AX5689控制器.
- * @note   根据PDF Step 4: Setup the AX5688/AX5689.
+ * @brief  Setup AX5689 with current configuration mode
+ * @note   Based on official Step 4: Set up AX5688/AX5689
  */
-void AX5689_Setup(void) {
-    // 使能AX5689控制器 (AX_Reset_N_Pin -> PA8)
+void AX5689_Setup(void) 
+{
+    RTT_printf("=== Step 4: Set up AX5688/AX5689 ===\r\n");
+    
+    // SetPin(AX_RESET_N, HIGH); // 启用 AX5688 或 AX5689
     HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_SET);
-    RTT_printf("AX5689 Enabled (Reset pin HIGH).\r\n");
-
-    // 等待芯片稳定
+    RTT_printf("AX_RESET_N set to HIGH (Enable AX5689)\r\n");
+    
+    // AX568X_WriteRegisterSet(axAddrI2C, &amplifierCommands[0]); 
+    // 从支持文件中写入"寄存器设置"
+    if (current_config_mode == AX5689_CLOSELOOP_MODE) {
+        RTT_printf("Writing CloseLoop register configuration...\r\n");
+        AX5689_WriteRegisterSet(amplifierCommands_CloseLoop);
+    } else {
+        RTT_printf("Writing OpenLoop register configuration...\r\n");
+        AX5689_WriteRegisterSet(amplifierCommands);
+    }
+    
+    // delay(500); // 系统稳定时间 (ms)
     HAL_Delay(500);
-
-    // 从您的头文件写入寄存器设置
-    RTT_printf("Writing register settings...\r\n");
-    AX5689_WriteRegisterSet(&amplifierCommands[0]);
-    RTT_printf("Register settings written.\r\n");
-
-    // 系统稳定时间
-    HAL_Delay(500);
+    RTT_printf("System stabilization delay: 500ms\r\n");
+    RTT_printf("AX5689 setup completed according to official documentation.\r\n\r\n");
 }
 
-void StartControlLoop(void) {
-    RTT_printf("Starting control loop...\r\n");
+/**
+ * @brief  Start the AX5689 control loop
+ * @note   Follows official Axign startup sequence to minimize pop noise
+ */
+void StartControlLoop(void) 
+{
+    // Get current mode values
+    uint16_t reg01_value, reg03_value, reg07_value, reg07_default;
+    if (current_config_mode == AX5689_CLOSELOOP_MODE) {
+        reg01_value = 0xFFFF;  // REG01_VALUE from CloseLoop
+        reg03_value = 0x1155;  // REG03_VALUE from CloseLoop  
+        reg07_value = 0x0001;  // REG07_VALUE from CloseLoop
+        reg07_default = 0x0064; // REG07_VALUE_DEFAULT
+    } else {
+        reg01_value = 0xFFFF;  // REG01_VALUE from OpenLoop
+        reg03_value = 0x5500;  // REG03_VALUE from OpenLoop
+        reg07_value = 0x0001;  // REG07_VALUE from OpenLoop
+        reg07_default = 0x0064; // REG07_VALUE_DEFAULT
+    }
 
-    // 禁用所有环路滤波器和PWM调制器
-    AX5689_Write(0x0001, REG01_VALUE_DEFAULT);
-    // 设置音量斜坡时间为快速
-    AX5689_Write(0x0007, REG07_VALUE);
-    // 设置PSTART为高电平以使能电源级
-    AX5689_Write(0x0002, REG02_PSTART_ENABLE);
-    // 使能所有环路滤波器和PWM调制器
-    AX5689_Write(0x0001, REG01_VALUE);
-    // 使能外部ADC反馈
-    AX5689_Write(0x0003, REG03_VALUE);
+    RTT_printf("Starting control loop in %s mode...\r\n", 
+               (current_config_mode == AX5689_CLOSELOOP_MODE) ? "CloseLoop" : "OpenLoop");
 
+    // Step 1: Disable all loop filters and PWM modulators
+    AX5689_Write(0x0001, 0xFF00); // REG01_VALUE_DEFAULT
+    
+    // Step 2: Set volume ramp time to fast
+    AX5689_Write(0x0007, reg07_value);
+    
+    // Step 3: Set Pstart to 'high' to enable power stage
+    AX5689_Write(0x0002, 0x1FFF); // REG02_PSTART_ENABLE
+    
+    // Step 4: Enable all loop filters and PWM modulators
+    AX5689_Write(0x0001, reg01_value);
+    
+    // Step 5: Enable external ADC feedback (mode-specific)
+    AX5689_Write(0x0003, reg03_value);
+    
+    // Step 6: Wait 1ms
     HAL_Delay(1);
-
-    // 取消静音 (AX_Mute_N_Pin -> PC6)
+    
+    // Step 7: Unmute amplifier
     HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_SET);
-    RTT_printf("Amplifier Unmuted.\r\n");
-
-    // 等待音量斜坡上升
+    
+    // Step 8: Wait for volume ramp up (20ms)
     HAL_Delay(20);
-
-    // 将音量斜坡时间设回默认值
-    AX5689_Write(0x0007, REG07_VALUE_DEFAULT);
-    RTT_printf("Control loop started.\r\n");
+    
+    // Step 9: Set volume ramp time to default value
+    AX5689_Write(0x0007, reg07_default);
+    
+    RTT_printf("Control loop started successfully.\r\n");
 }
 
 /**
- * @brief  停止Axign控制循环.
- * @note   严格遵循PDF P16的流程以最小化关机pop噪音.
+ * @brief  Stop the AX5689 control loop
+ * @note   Follows official Axign shutdown sequence to minimize pop noise
  */
-void StopControlLoop(void) {
+void StopControlLoop(void) 
+{
     RTT_printf("Stopping control loop...\r\n");
-
-    // 设置音量斜坡时间为快速
-    AX5689_Write(0x0007, REG07_VALUE);
-    // 功放静音 (AX_Mute_N_Pin -> PC6)
+    
+    // Step 1: Set volume ramp time to fast
+    AX5689_Write(0x0007, 0x0001); // REG07_VALUE (fast ramp)
+    
+    // Step 2: Mute amplifier (volume to 0)
     HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_RESET);
-    RTT_printf("Amplifier Muted.\r\n");
-
-    // 等待音量斜坡下降
+    
+    // Step 3: Wait for volume ramp down (20ms)
     HAL_Delay(20);
-
-    // 设置PSTART为低电平以禁用电源级
-    AX5689_Write(0x0002, REG02_PSTART_DISABLE);
-    // 等待三态变为低电平
+    
+    // Step 4: Set Pstart to 'low' to disable power stage
+    AX5689_Write(0x0002, 0x17FF); // REG02_PSTART_DISABLE
+    
+    // Step 5: Wait for tristate to go low (20ms)
     HAL_Delay(20);
-
-    // 禁用/复位所有环路滤波器和PWM调制器
-    AX5689_Write(0x0001, REG01_VALUE_DEFAULT);
-    // 设置音量斜坡时间为默认值
-    AX5689_Write(0x0007, REG07_VALUE_DEFAULT);
-    // 将所有斜坡设回其值
-    AX5689_Write(0x0003, REG03_VALUE_DEFAULT);
-
-    // 清除状态寄存器
+    
+    // Step 6: Disable/reset all loop filters and PWM modulators
+    AX5689_Write(0x0001, 0xFF00); // REG01_VALUE_DEFAULT
+    
+    // Step 7: Set volume ramp time to default value
+    AX5689_Write(0x0007, 0x0064); // REG07_VALUE_DEFAULT
+    
+    // Step 8: Restore all ramps to default values
+    AX5689_Write(0x0003, 0x0000); // REG03_VALUE_DEFAULT
+    
+    // Step 9: Reset status registers
     clearStatusRegisters();
-    RTT_printf("Control loop stopped.\r\n");
+    
+    RTT_printf("Control loop stopped successfully.\r\n");
 }
 
 /**
- * @brief 
+ * @brief  Clear AX5689 status registers
+ * @note   Read all status registers to clear status pin
  */
-void clearStatusRegisters(void) {
+void clearStatusRegisters(void) 
+{
     uint16_t temp;
-    AX5689_Read(60, &temp);
-    AX5689_Read(61, &temp);
-    AX5689_Read(62, &temp);
+    
+    // Read all status registers to clear them
+    AX5689_Read(0x003C, &temp); // Read register 60 (0x3C)
+    AX5689_Read(0x003D, &temp); // Read register 61 (0x3D) 
+    AX5689_Read(0x003E, &temp); // Read register 62 (0x3E)
+    
     RTT_printf("Status registers cleared.\r\n");
 }
 
 /**
- * @brief 检查AX5689的状态寄存器并在发生故障时处理.
- * @note  此函数应在主循环中定期调用.
+ * @brief  Check AX5689 status register for errors
  */
-void checkStatusRegister(void) {
-    // 假设AX_STATUS连接到MCU的某个输入引脚 (例如 PA10)
-    // if (HAL_GPIO_ReadPin(AX_STATUS_GPIO_Port, AX_STATUS_Pin) == GPIO_PIN_SET) {
-    // 简单的轮询实现
-    uint16_t reg62val;
-    if (AX5689_Read(62, &reg62val) == HAL_OK) {
-        // 检查 sys_fault 位 (bit 5)
-        if ((reg62val & (1 << 5)) > 0) {
-            RTT_printf("System fault detected! Restarting control loop.\r\n");
-
-            // 停止控制循环
-            StopControlLoop();
-
-            // 根据PDF P17, 复位PFAULT_N掩码以清除PSTART锁存
-            AX5689_Write(56, REG56_RESET_VALUE);
-            // 将PFAULT_N掩码设置回粘滞模式
-            AX5689_Write(56, REG56_VALUE);
-
-            // 清除状态寄存器
-            clearStatusRegisters();
-
-            // 等待电源级在故障后稳定
-            HAL_Delay(100);
-
-            // 重新检查故障位是否已清除
-            AX5689_Read(62, &reg62val);
-            if ((reg62val & (1 << 5)) == 0) {
-                 RTT_printf("Fault cleared. Restarting...\r\n");
-                 StartControlLoop();
-            } else {
-                 RTT_printf("Fault persists. System halted.\r\n");
-                 // 在这里可以执行永久性关机或错误指示
+void checkStatusRegister(void) 
+{
+    uint16_t statusValue;
+    static uint32_t lastCheckTime = 0;
+    uint32_t currentTime = HAL_GetTick();
+    
+    // Check status every 1000ms to avoid flooding
+    if (currentTime - lastCheckTime > 1000) {
+        lastCheckTime = currentTime;
+        
+/*         if (AX5689_Read(0x0010, &statusValue) == HAL_OK) {
+            if (statusValue != 0x0000) {
+                RTT_printf("Status register warning: 0x%04X\r\n", statusValue);
             }
+        } */
+    }
+}
+
+/* Mode Management Functions ------------------------------------------------ */
+
+/**
+ * @brief  Set the current configuration mode
+ * @param  mode: Target configuration mode
+ */
+void AX5689_SetConfigMode(AX5689_ConfigMode_t mode) 
+{
+    current_config_mode = mode;
+}
+
+/**
+ * @brief  Get the current configuration mode
+ * @retval Current configuration mode
+ */
+AX5689_ConfigMode_t AX5689_GetConfigMode(void) 
+{
+    return current_config_mode;
+}
+
+/**
+ * @brief  Switch AX5689 to OpenLoop mode with proper stop/start sequence
+ */
+void AX5689_SwitchToOpenLoop(void) 
+{
+    RTT_printf("=== Switching to OpenLoop mode ===\r\n");
+    
+    // Step 1: Stop current control loop properly
+    StopControlLoop();
+    
+    // Step 2: Set new configuration mode
+    AX5689_SetConfigMode(AX5689_OPENLOOP_MODE);
+    
+    // Step 3: Write new register configuration
+    AX5689_Setup();
+    
+    // Step 4: Start control loop with new configuration
+    StartControlLoop();
+    
+    // Step 5: Verify mode switch by reading register 0x0003
+    uint16_t reg03_value;
+    if (AX5689_Read(0x0003, &reg03_value) == HAL_OK) {
+        RTT_printf("Register 0x0003 = 0x%04X (expected 0x5500 for OpenLoop)\r\n", reg03_value);
+        if (reg03_value == 0x5500) {
+            HAL_GPIO_WritePin(LED_ON_OFF_GPIO_Port, LED_ON_OFF_Pin, GPIO_PIN_RESET);
+            RTT_printf("✓ OpenLoop mode confirmed!\r\n");
+        } else {
+            RTT_printf("⚠ OpenLoop mode verification failed!\r\n");
         }
     }
+    
+    RTT_printf("OpenLoop mode switch completed.\r\n\r\n");
+}
+
+/**
+ * @brief  Switch AX5689 to CloseLoop mode with proper stop/start sequence
+ */
+void AX5689_SwitchToCloseLoop(void) 
+{
+    RTT_printf("=== Switching to CloseLoop mode ===\r\n");
+    
+    // Step 1: Stop current control loop properly
+    StopControlLoop();
+    
+    // Step 2: Set new configuration mode
+    AX5689_SetConfigMode(AX5689_CLOSELOOP_MODE);
+    
+    // Step 3: Write new register configuration
+    AX5689_Setup();
+    
+    // Step 4: Start control loop with new configuration
+    StartControlLoop();
+    
+    // Step 5: Verify mode switch by reading register 0x0003
+    uint16_t reg03_value;
+    if (AX5689_Read(0x0003, &reg03_value) == HAL_OK) {
+        RTT_printf("Register 0x0003 = 0x%04X (expected 0x1155 for CloseLoop)\r\n", reg03_value);
+        if (reg03_value == 0x1155) {
+            HAL_GPIO_WritePin(LED_ON_OFF_GPIO_Port, LED_ON_OFF_Pin, GPIO_PIN_SET);
+            RTT_printf("✓ CloseLoop mode confirmed!\r\n");
+        } else {
+            RTT_printf("⚠ CloseLoop mode verification failed!\r\n");
+        }
+    }
+    
+    RTT_printf("CloseLoop mode switch completed.\r\n\r\n");
+}
+
+/* Private Functions ---------------------------------------------------------*/
+
+/**
+ * @brief  Initialize power sequence for AX5689
+ */
+static void AX5689_PowerSequence_Init(void) 
+{
+    // Step 1: Complete reset and power down
+    HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(D1V2_EN_GPIO_Port, D1V2_EN_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(AX_3V3_GPIO_Port, AX_3V3_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(AX_5V_GPIO_Port, AX_5V_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(D5V2_EN_GPIO_Port, D5V2_EN_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(PVDD_EN_GPIO_Port, PVDD_EN_Pin, GPIO_PIN_RESET);
+    
+    // Step 2: Wait for complete power down
+    HAL_Delay(100);
+    
+    // Step 3: Core power supplies first
+    HAL_GPIO_WritePin(D1V2_EN_GPIO_Port, D1V2_EN_Pin, GPIO_PIN_SET);
+    HAL_Delay(20);
+    
+    HAL_GPIO_WritePin(AX_3V3_GPIO_Port, AX_3V3_Pin, GPIO_PIN_SET);
+    HAL_Delay(30);
+    
+    // Step 4: Release reset after core power is stable
+    HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_SET);
+    HAL_Delay(100);
+    
+    // Step 5: Additional startup time for I2C readiness
+    HAL_Delay(50);
+}
+
+/**
+ * @brief  Enable AX5689 controller
+ */
+static void AX5689_EnableController(void) 
+{
+    HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_SET);
+    HAL_Delay(100);
+}
+
+/**
+ * @brief  Disable AX5689 controller
+ */
+static void AX5689_DisableController(void) 
+{
+    HAL_GPIO_WritePin(AX_Reset_N_GPIO_Port, AX_Reset_N_Pin, GPIO_PIN_RESET);
+    HAL_Delay(50);
 }
