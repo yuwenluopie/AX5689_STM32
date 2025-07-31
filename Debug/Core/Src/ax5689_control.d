@@ -1,5 +1,5 @@
 Core/Src/ax5689_control.o: ../Core/Src/ax5689_control.c \
- ../Core/Inc/ax5689_control.h ../Core/Inc/main.h \
+ ../Core/Inc/OpenLoop.h ../Core/Inc/ax5689_control.h ../Core/Inc/main.h \
  ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal.h \
  ../Core/Inc/stm32g0xx_hal_conf.h \
  ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal_rcc.h \
@@ -33,7 +33,8 @@ Core/Src/ax5689_control.o: ../Core/Src/ax5689_control.c \
  ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal_spi_ex.h \
  ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal_uart.h \
  ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal_uart_ex.h \
- ../Core/Inc/AXN050-AX5689_register_settings_hybrid_HiRes_PWM_BD\ 1.h
+ ../Core/Inc/SEGGER_RTT.h ../Core/Inc/SEGGER_RTT_Conf.h
+../Core/Inc/OpenLoop.h:
 ../Core/Inc/ax5689_control.h:
 ../Core/Inc/main.h:
 ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal.h:
@@ -69,4 +70,5 @@ Core/Src/ax5689_control.o: ../Core/Src/ax5689_control.c \
 ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal_spi_ex.h:
 ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal_uart.h:
 ../Drivers/STM32G0xx_HAL_Driver/Inc/stm32g0xx_hal_uart_ex.h:
-../Core/Inc/AXN050-AX5689_register_settings_hybrid_HiRes_PWM_BD\ 1.h:
+../Core/Inc/SEGGER_RTT.h:
+../Core/Inc/SEGGER_RTT_Conf.h:

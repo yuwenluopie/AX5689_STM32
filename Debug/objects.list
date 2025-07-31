@@ -25,3 +25,6 @@
 "./Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_uart.o"
 "./Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_uart_ex.o"
 "./Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_ll_rcc.o"
+"./RTT/SEGGER_RTT.o"
+"./RTT/SEGGER_RTT_ASM_ARMv7M.o"
+"./RTT/SEGGER_RTT_printf.o"

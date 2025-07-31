@@ -13,6 +13,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "ax5689_control.h"
+#include "SEGGER_RTT.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -92,18 +93,22 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI2_Init();
   MX_USART1_UART_Init();
-
-  IO_Init();
-
-  AX5689_Setup();
-
-  // 启动控制循环
-  StartControlLoop();
+  /* USER CODE BEGIN 2 */
   
+  // 初始化AX5689相关IO和RTT
+  IO_Init();
+  
+  // 设置和启动AX5689
+  AX5689_Setup();
+  StartControlLoop();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  // 发送一个简单的RTT测试消息
+  SEGGER_RTT_WriteString(0, "Main loop started - RTT working!\r\n");
+  
   while (1)
   {
     /* USER CODE END WHILE */
@@ -367,10 +372,10 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-/* 在文件末尾，Error_Handler函数之前，添加printf的重定向实现 */
+/* 在文件末尾，Error_Handler函数之前，添加RTT_printf的重定向实现 */
 /* USER CODE BEGIN 4 */
 /**
-  * @brief  Retargets the C library printf function to the USART.
+  * @brief  Retargets the C library RTT_printf function to the USART.
   */
 PUTCHAR_PROTOTYPE
 {
@@ -406,7 +411,15 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: RTT_printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
+/* extern 声明 */
+extern const uint16_t amplifierCommands[];
+extern float PVDD;
+extern uint32_t SAMPLE_RATE;
+extern float UVP;
+extern float OVP;
+extern uint16_t VolumeHex;

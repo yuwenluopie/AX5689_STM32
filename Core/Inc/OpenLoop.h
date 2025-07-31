@@ -23,7 +23,7 @@
 // ADC input resistors: 10000 Ohm (0.1 %)
 // PVDD = 50
 // Date: 2025/01/09 15:04:04
-
+#include <stdint.h>
 const uint16_t amplifierCommands[] = {
 0x0012, 0x0371, // SerialDataReceiver
 0x0013, 0x0000, // SerialDataRXChannelPointers1

@@ -13,8 +13,13 @@
 
 #define AX5689_I2C_ADDR (0x39 << 1)
 
-// 包含您的寄存器配置文件
-#include "AXN050-AX5689_register_settings_hybrid_HiRes_PWM_BD 1.h"
+// 外部变量声明 (定义在ax5689_control.c中)
+extern const uint16_t amplifierCommands[];
+extern float PVDD;
+extern uint32_t SAMPLE_RATE;
+extern float UVP;
+extern float OVP;
+extern uint16_t VolumeHex;
 
 // 函数原型声明
 void IO_Init(void);
