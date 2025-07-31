@@ -1,5 +1,15 @@
 {
     "files.associations": {
-        "axn050-ax5689_register_settings_hybrid_hires_pwm_bd 1.h": "c"
-    }
+        "axn050-ax5689_register_settings_hybrid_hires_pwm_bd 1.h": "c",
+        "*.h": "c",
+        "*.c": "c"
+    },
+    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.configurationWarnings": "enabled",
+    "C_Cpp.dimInactiveRegions": true,
+    "C_Cpp.default.intelliSenseMode": "gcc-arm",
+    "C_Cpp.default.cStandard": "c11",
+    "C_Cpp.default.cppStandard": "c++17",
+    "C_Cpp.default.compilerPath": "C:/ST/STM32CubeIDE_1.18.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/arm-none-eabi-gcc.exe"
 }
