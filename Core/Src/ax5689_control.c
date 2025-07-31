@@ -224,13 +224,14 @@ void StartControlLoop(void)
     
     // Step 7: Unmute amplifier
     HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_SET);
+
     
     // Step 8: Wait for volume ramp up (20ms)
     HAL_Delay(20);
     
     // Step 9: Set volume ramp time to default value
     AX5689_Write(0x0007, reg07_default);
-    
+    HAL_GPIO_WritePin(MCU_Pstart_GPIO_Port, MCU_Pstart_Pin, GPIO_PIN_SET);
     RTT_printf("Control loop started successfully.\r\n");
 }
 
@@ -247,7 +248,7 @@ void StopControlLoop(void)
     
     // Step 2: Mute amplifier (volume to 0)
     HAL_GPIO_WritePin(AX_Mute_N_GPIO_Port, AX_Mute_N_Pin, GPIO_PIN_RESET);
-    
+    HAL_GPIO_WritePin(MCU_Pstart_GPIO_Port, MCU_Pstart_Pin, GPIO_PIN_RESET);
     // Step 3: Wait for volume ramp down (20ms)
     HAL_Delay(20);
     
