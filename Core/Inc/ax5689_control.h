@@ -12,6 +12,7 @@
 
 
 #define AX5689_I2C_ADDR (0x39 << 1)
+#include "AXN050-AX5689_register_settings_hybrid_HiRes_PWM_BD.h"
 
 // 外部变量声明 (定义在ax5689_control.c中)
 extern const uint16_t amplifierCommands[];
