@@ -18,6 +18,14 @@
 /* Private defines -----------------------------------------------------------*/
 #define RTT_printf(fmt, ...) SEGGER_RTT_printf(0, fmt, ##__VA_ARGS__)
 
+// Fault handling register definitions from OpenLoop.h
+#ifndef REG56_VALUE
+#define REG56_VALUE 0x0C35
+#endif
+#ifndef REG56_RESET_VALUE  
+#define REG56_RESET_VALUE 0x0435
+#endif
+
 /* External variables --------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c2;
 
@@ -281,23 +289,91 @@ void clearStatusRegisters(void)
 }
 
 /**
- * @brief  Check AX5689 status register for errors
+ * @brief  Check AX5689 status register for errors and handle power stage faults
+ * @note   Based on official power stage fault handling documentation
  */
 void checkStatusRegister(void) 
 {
-    uint16_t statusValue;
+    // AX568X 状态寄存器读出
+    // Check if AX_STATUS pin is HIGH (fault condition)
+    if (HAL_GPIO_ReadPin(AX_State_GPIO_Port, AX_State_Pin) == GPIO_PIN_SET) {
+        RTT_printf("⚠ AX_STATUS pin HIGH - Fault detected!\r\n");
+        
+        uint16_t reg60val, reg61val, reg62val;
+        
+        // 读出寄存器 60, 61, 62
+        // Read status registers 60, 61, 62
+        if (AX5689_Read(0x003C, &reg60val) == HAL_OK) { // Register 60 (0x3C)
+            RTT_printf("Status Register 60: 0x%04X\r\n", reg60val);
+        }
+        
+        if (AX5689_Read(0x003D, &reg61val) == HAL_OK) { // Register 61 (0x3D)
+            RTT_printf("Status Register 61: 0x%04X\r\n", reg61val);
+        }
+        
+        if (AX5689_Read(0x003E, &reg62val) == HAL_OK) { // Register 62 (0x3E)
+            RTT_printf("Status Register 62: 0x%04X\r\n", reg62val);
+            
+            // 检查 sys_fault 位 (bit 5) - Check sys_fault bit (bit 5)
+            if ((reg62val & (1 << 5)) > 0) { 
+                RTT_printf("🔴 System fault (bit 5) detected in register 62!\r\n");
+                
+                // 使 AX5688/AX5689 准备好重启
+                // Prepare AX5688/AX5689 for restart
+                StopControlLoop();
+                
+                // 复位 PFAULT_N 掩码以清除 PSTART 锁存
+                // Reset PFAULT_N mask to clear PSTART latch
+                RTT_printf("Resetting PFAULT_N mask to clear PSTART latch...\r\n");
+                AX5689_Write(0x0038, REG56_RESET_VALUE); // Register 56 (0x38)
+                
+                // 将 PFAULT_N 掩码设置回粘滞模式
+                // Set PFAULT_N mask back to sticky mode
+                RTT_printf("Setting PFAULT_N mask back to sticky mode...\r\n");
+                AX5689_Write(0x0038, REG56_VALUE); // Register 56 (0x38)
+                
+                // 复位状态寄存器
+                // Reset status registers
+                clearStatusRegisters();
+                
+                // 故障后等待功率级稳定
+                // Wait for power stage to stabilize after fault
+                RTT_printf("Waiting for power stage stabilization (100ms)...\r\n");
+                HAL_Delay(100);
+                
+                // 重新检查故障位是否已清除
+                // Check if sys_fault bit is now cleared
+                if (HAL_GPIO_ReadPin(AX_State_GPIO_Port, AX_State_Pin) == GPIO_PIN_RESET) {
+                    RTT_printf("✅ Fault cleared. Restarting control loop...\r\n");
+                    StartControlLoop(); // 启动控制环路以恢复播放
+                } else {
+                    RTT_printf("🔴 Fault persists. System halted for safety.\r\n");
+                    // 在这里可以执行永久性关机或错误指示
+                    // Can implement permanent shutdown or error indication here
+                    HAL_GPIO_WritePin(LED_ON_OFF_GPIO_Port, LED_ON_OFF_Pin, GPIO_PIN_RESET);
+                }
+            } else {
+                RTT_printf("⚠ AX_STATUS HIGH but sys_fault bit not set. Other status condition.\r\n");
+                // Clear status registers for other non-critical status conditions
+                clearStatusRegisters();
+            }
+        }
+    }
+}
+
+/**
+ * @brief  Periodic fault monitoring function (should be called from main loop)
+ * @note   Call this function periodically to monitor for faults
+ */
+void AX5689_PeriodicFaultCheck(void) 
+{
     static uint32_t lastCheckTime = 0;
     uint32_t currentTime = HAL_GetTick();
     
-    // Check status every 1000ms to avoid flooding
-    if (currentTime - lastCheckTime > 1000) {
+    // Check status every 100ms for responsive fault handling
+    if (currentTime - lastCheckTime > 100) {
         lastCheckTime = currentTime;
-        
-/*         if (AX5689_Read(0x0010, &statusValue) == HAL_OK) {
-            if (statusValue != 0x0000) {
-                RTT_printf("Status register warning: 0x%04X\r\n", statusValue);
-            }
-        } */
+        checkStatusRegister();
     }
 }
 

@@ -97,9 +97,16 @@ void StopControlLoop(void);
 void clearStatusRegisters(void);
 
 /**
- * @brief Check AX5689 status register for errors
+ * @brief Check AX5689 status register for errors and handle power stage faults
+ * @note  Based on official power stage fault handling documentation
  */
 void checkStatusRegister(void);
+
+/**
+ * @brief Periodic fault monitoring function (should be called from main loop)
+ * @note  Call this function periodically to monitor for faults
+ */
+void AX5689_PeriodicFaultCheck(void);
 
 /* Mode Management Functions ------------------------------------------------ */
 
