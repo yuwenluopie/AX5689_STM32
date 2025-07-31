@@ -387,7 +387,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 For technical support and questions:
 - **Issue Tracker**: GitHub Issues
-- **Documentation**: In-code comments and markdown files
+- **E-mail**: nicole.yu@monolithicpower.com
 - **Developer**: ncyu (Project Author)
 
 ## 👥 Contributors
