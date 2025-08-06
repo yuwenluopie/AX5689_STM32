@@ -73,6 +73,8 @@ void Error_Handler(void);
 #define AX_Status_GPIO_Port GPIOA
 #define PVDD_EN_Pin GPIO_PIN_2
 #define PVDD_EN_GPIO_Port GPIOA
+#define DC_IN_DEC_Pin GPIO_PIN_3
+#define DC_IN_DEC_GPIO_Port GPIOA
 #define LED_Display_CS_Pin GPIO_PIN_4
 #define LED_Display_CS_GPIO_Port GPIOA
 #define LED_Display_CLK_Pin GPIO_PIN_5
@@ -83,6 +85,10 @@ void Error_Handler(void);
 #define MCU_Pstart_GPIO_Port GPIOA
 #define LED_ON_OFF_Pin GPIO_PIN_8
 #define LED_ON_OFF_GPIO_Port GPIOC
+#define Mode_KEY_Pin GPIO_PIN_9
+#define Mode_KEY_GPIO_Port GPIOC
+#define Mode_LED_Pin GPIO_PIN_0
+#define Mode_LED_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

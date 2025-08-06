@@ -92,23 +92,21 @@ int main(void)
   MX_I2C2_Init();
   MX_SPI2_Init();
   MX_USART1_UART_Init();
-
   IO_Init();
-
   AX5689_Setup();
-
   // 启动控制循环
   StartControlLoop();
-
-
   while (1)
   {
-
-    //checkStatusRegister();
-
-    HAL_Delay(100); // 轮询间隔
-
-
+    checkStatusRegister();
+    HAL_Delay(50); // 轮询间隔
+    if (HAL_GPIO_ReadPin(DC_IN_DEC_GPIO_Port, DC_IN_DEC_Pin) == GPIO_PIN_RESET)
+    {
+        StopControlLoop();
+        printf("DC input can not detected. Stopping control loop.\r\n");
+        // 检测到Power Stage 输入，停止控制循环
+    }
+    HAL_Delay(50); // 轮询间隔
   }
   /* USER CODE END 3 */
 }
@@ -310,6 +308,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, D1V2_EN_Pin|AX_3V3_Pin|AX_5V_Pin|D5V2_EN_Pin
@@ -318,6 +317,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, AX_Reset_N_Pin|PVDD_EN_Pin|LED_Display_CS_Pin|LED_Display_Data_Pin
                           |MCU_Pstart_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(Mode_LED_GPIO_Port, Mode_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : D1V2_EN_Pin AX_3V3_Pin AX_5V_Pin D5V2_EN_Pin
                            AX_Mute_N_Pin LED_ON_OFF_Pin */
@@ -335,8 +337,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(AX_Reset_N_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : AX_Status_Pin LED_Display_CLK_Pin */
-  GPIO_InitStruct.Pin = AX_Status_Pin|LED_Display_CLK_Pin;
+  /*Configure GPIO pins : AX_Status_Pin DC_IN_DEC_Pin LED_Display_CLK_Pin */
+  GPIO_InitStruct.Pin = AX_Status_Pin|DC_IN_DEC_Pin|LED_Display_CLK_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -347,6 +349,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Mode_KEY_Pin */
+  GPIO_InitStruct.Pin = Mode_KEY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(Mode_KEY_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Mode_LED_Pin */
+  GPIO_InitStruct.Pin = Mode_LED_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(Mode_LED_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 

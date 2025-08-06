@@ -543,8 +543,8 @@ void checkStatusRegister(void) {
             if ((reg62val & (1 << 5)) == 0) {
                 printf("Fault cleared. Restarting...\r\n");
                 StartControlLoop();
-        //拉低LED以清除故障
-            HAL_GPIO_WritePin(LED_ON_OFF_GPIO_Port, LED_ON_OFF_Pin, GPIO_PIN_SET);
+                //拉低LED以清除故障
+                HAL_GPIO_WritePin(LED_ON_OFF_GPIO_Port, LED_ON_OFF_Pin, GPIO_PIN_SET);
             }
         }
         
