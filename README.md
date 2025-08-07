@@ -22,13 +22,13 @@ Complete STM32G0 solution for controlling Axign AX5689 audio amplifier with dual
 
 Connect these 5 essential wires between STM32 and AX5689:
 
-| Function | STM32 Pin | AX5689 Pin | Wire Color |
-|----------|-----------|------------|------------|
-| I2C Clock | PB13 | SCL | Yellow |
-| I2C Data | PB14 | SDA | Green |
-| Reset Control | PA0 | RESET_N | Red |
-| Status Monitor | PA1 | STATUS | Blue |
-| Mute Control | PC0 | MUTE_N | White |
+| Function | STM32 Pin | AX5689 Pin |
+|----------|-----------|------------|
+| I2C Clock | PB13 | SCL |
+| I2C Data | PB14 | SDA |
+| Reset Control | PA0 | RESET_N |
+| Status Monitor | PA1 | STATUS | 
+| Mute Control | PC0 | MUTE_N |
 
 **Important**: Make sure both boards share the same ground (GND)!
 
