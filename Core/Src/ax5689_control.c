@@ -191,7 +191,7 @@ void StartControlLoop(void)
     uint16_t reg01_value, reg03_value, reg07_value, reg07_default;
     if (current_config_mode == AX5689_CLOSELOOP_MODE) {
         reg01_value = 0xFFFF;  // REG01_VALUE from CloseLoop
-        reg03_value = 0x1155;  // REG03_VALUE from CloseLoop  
+        reg03_value = 0x0055;  // REG03_VALUE from CloseLoop  
         reg07_value = 0x0001;  // REG07_VALUE from CloseLoop
         reg07_default = 0x0064; // REG07_VALUE_DEFAULT
     } else {
@@ -454,8 +454,8 @@ void AX5689_SwitchToCloseLoop(void)
     // Step 5: Verify mode switch by reading register 0x0003
     uint16_t reg03_value;
     if (AX5689_Read(0x0003, &reg03_value) == HAL_OK) {
-        RTT_printf("Register 0x0003 = 0x%04X (expected 0x1155 for CloseLoop)\r\n", reg03_value);
-        if (reg03_value == 0x1155) {
+        RTT_printf("Register 0x0003 = 0x%04X (expected 0x0055 for CloseLoop)\r\n", reg03_value);
+        if (reg03_value == 0x0055) {
             HAL_GPIO_WritePin(LED_ON_OFF_GPIO_Port, LED_ON_OFF_Pin, GPIO_PIN_SET);
             RTT_printf("✓ CloseLoop mode confirmed!\r\n");
         } else {

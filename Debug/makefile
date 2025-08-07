@@ -61,8 +61,8 @@ all: main-build
 main-build: MyGPIOtest.elf secondary-outputs
 
 # Tool invocations
-MyGPIOtest.elf MyGPIOtest.map: $(OBJS) $(USER_OBJS) C:\Users\ncyu\STM32CubeIDE\workspace_1.18.1\MyGPIOtest\STM32G0B0RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "MyGPIOtest.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"C:\Users\ncyu\STM32CubeIDE\workspace_1.18.1\MyGPIOtest\STM32G0B0RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MyGPIOtest.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+MyGPIOtest.elf MyGPIOtest.map: $(OBJS) $(USER_OBJS) C:\Users\ncyu\Downloads\AX5689_STM32-8cb31875031f0ff0190111b8f8f88773739e11c2\STM32G0B0RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "MyGPIOtest.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"C:\Users\ncyu\Downloads\AX5689_STM32-8cb31875031f0ff0190111b8f8f88773739e11c2\STM32G0B0RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MyGPIOtest.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
