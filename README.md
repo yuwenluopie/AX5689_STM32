@@ -82,7 +82,7 @@ AX5689_SwitchToCloseLoop();
 ### I2C Settings (Already configured)
 ```c
 // The code uses these settings - no need to change
-I2C Address: 0x72 (8-bit format)
+I2C Address: 0x38 (8-bit format)
 Speed: 100kHz (standard mode)
 ```
 
